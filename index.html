@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Train Schedule</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.1.1.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/momentjs/2.12.0/moment.min.js"></script>
+
+</head>
+
+<body>
+    <div class="container">
+
+        <div class="jumbotron jumbotron-fluid">
+            <div class="container">
+                <h1 class="display-4">Train Schedule 🚇</h1>
+            </div>
+        </div>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th scope="col">Train Name</th>
+                    <th scope="col">Destination</th>
+                    <th scope="col">Frequency(min)</th>
+                    <th scope="col">Next Arrival</th>
+                    <th scope="col">Minutes Away</th>
+                </tr>
+            </thead>
+            <tbody id="add-row"></tbody>
+        </table>
+
+        <form role="form">
+            <div class="form-group row">
+                <label for="text">Train Name</label>
+                <input class="form-control" id="train-name" type="text">
+            </div>
+            <div class="form-group row">
+                <label for="text">Destination</label>
+                <input class="form-control" id="destination" type="text">
+            </div>
+            <div class="form-group row">
+                <label for="text">First Train Time (HH:mm - military time)</label>
+                <input class="form-control" id="first-train" type="text">
+            </div>
+            <div class="form-group row">
+                <label for="text">Frequency(min)</label>
+                <input class="form-control" id="frequency" type="text">
+            </div>
+            <button type="submit" id="add-train" class="btn btn-success" id="addTrain">Submit</button>
+        </form>
+
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/5.10.1/firebase.js"></script>
+    <script src="https://code.jquery.com/jquery.js"></script>
+
+    <script>
+
+        $(document).ready(function () {
+
+            var config = {
+                apiKey: "AIzaSyAyIGs6fjicXp0PdSonjSTr0nD0rm3xEiY",
+                authDomain: "train-scheduler-8dda1.firebaseapp.com",
+                databaseURL: "https://train-scheduler-8dda1.firebaseio.com",
+                projectId: "train-scheduler-8dda1",
+                storageBucket: "train-scheduler-8dda1.appspot.com",
+                messagingSenderId: "359094644339"
+            };
+
+            firebase.initializeApp(config);
+            var database = firebase.database();
+
+            var name;
+            var destination;
+            var firstTrain;
+            var frequency = 0;
+
+            $("#add-train").on("click", function () {
+                event.preventDefault();
+                name = $("#train-name").val().trim();
+                destination = $("#destination").val().trim();
+                firstTrain = $("#first-train").val().trim();
+                frequency = $("#frequency").val().trim();
+
+                database.ref().push({
+                    name: name,
+                    destination: destination,
+                    firstTrain: firstTrain,
+                    frequency: frequency,
+                    dateAdded: firebase.database.ServerValue.TIMESTAMP
+                });
+                $("form")[0].reset();
+            });
+
+            database.ref().on("child_added", function (childSnapshot) {
+                var nextArr;
+                var minAway;
+
+                var firstTrainNew = moment(childSnapshot.val().firstTrain, "hh:mm").subtract(1, "years");
+
+                var diffTime = moment().diff(moment(firstTrainNew), "minutes");
+                var remainder = diffTime % childSnapshot.val().frequency;
+
+                var minAway = childSnapshot.val().frequency - remainder;
+
+                var nextTrain = moment().add(minAway, "minutes");
+                nextTrain = moment(nextTrain).format("hh:mm");
+
+                $("#add-row").append("<tr><td>" + childSnapshot.val().name +
+                    "</td><td>" + childSnapshot.val().destination +
+                    "</td><td>" + childSnapshot.val().frequency +
+                    "</td><td>" + nextTrain +
+                    "</td><td>" + minAway + "</td></tr>");
+            });
+        });
+
+    </script>
+</body>
+
+</html>
